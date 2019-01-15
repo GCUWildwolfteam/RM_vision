@@ -5,7 +5,7 @@
 
 class SerialPort
 {
-private:
+public:
     //串口标志量
     int fd;
 

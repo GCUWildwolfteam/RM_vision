@@ -31,11 +31,12 @@ bool isarmoredColor(Mat color_roi)
                     }
                 }
             }
+            //blue
             else
-            {   //blue
-                if(H>=55 && H<=130)
-                {   if(S >= 105 && S <= 255)
-                    {   if(V >= 105 && V <= 255)
+            {
+                if(H>=75 && H<=130)
+                {   if(S >= 195 && S <= 255)
+                    {   if(V >= 185 && V <= 255)
                         {
                             flag += 1;
                         }

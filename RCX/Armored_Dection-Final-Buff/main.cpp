@@ -1,14 +1,15 @@
 #include "cameraconfigure.h"
 #include "configure.h"
 #include "contourfeature.h"
-#include "serialport.h"
+#include "myserial.h"
+//#include "serialport.h"
 #include "matchandgroup.h"
 #include "databuff.h"
 
 int main()
 {
     CameraConfigure camera;
-    SerialPort Port(1);
+    //SerialPort Port(1);
     /*----------调用相机----------*/
     camera.cameraSet();
     /*----------调用相机----------*/
@@ -16,7 +17,8 @@ int main()
     /*----------串口部分----------*/
     if(serialisopen == 1)
     {
-        Port.initPort();//串口初始化函数
+        serialSet();
+        //initPort();//串口初始化函数
     }
     /*----------串口部分----------*/
 
@@ -55,7 +57,7 @@ int main()
             camera.iplImage = cvCreateImageHeader(cvSize(camera.sFrameInfo.iWidth,camera.sFrameInfo.iHeight),IPL_DEPTH_8U,camera.channel);
             cvSetData(camera.iplImage,camera.g_pRgbBuffer,camera.sFrameInfo.iWidth*camera.channel);//此处只是设置指针，无图像块数据拷贝，不需担心转换效率
             src_img = cvarrToMat(camera.iplImage,true);//这里只是进行指针转换，将IplImage转换成Mat类型
-            //resize(src_img,src_img,Size(640,480),INTER_NEAREST);
+            resize(src_img,src_img,Size(640,480),INTER_NEAREST);
             src_img.copyTo(dst_img);
 
             //--------------色彩分割	-----------------//
@@ -248,7 +250,7 @@ int main()
                     /*　判断上一次是否有数据成功发送　有则使用缓存,无则发送停止符*/
                     if(SuccessSend == true)
                     {
-                        int leftorright = missingFlag(src_img,X_Widht);
+                        int leftorright = missingFlag(src_img,Point(X_Widht,Y_height));
                         switch(leftorright)
                         {
                         case 1:
@@ -260,28 +262,32 @@ int main()
                                 int buff_reduce_value_y = abs(src_img.rows/2-y_buff);
                                 int send_buff_x = bufferReturn(src_img,x_buff,buff_reduce_value_x,SendBuf_COUNT,0);
                                 int send_buff_y = bufferReturn(src_img,y_buff,buff_reduce_value_y,SendBuf_COUNT,1);
-                                Port.RMSerialWrite(send_buff_x,send_buff_y,4);
+                                RMSerialWrite(send_buff_x,send_buff_y,4);
                                 SendBuf_COUNT += 1;
                                 cout<<send_buff_x<<"  "<<send_buff_y<<"  ";
                                 cout<<"send Buff"<<endl;
                             }
                             else
                             {
-                                Port.RMSerialWrite(X_Widht,Y_height,1);
+                                RMSerialWrite(X_Widht,Y_height,1);
                                 cout<<"send None"<<endl;
                             }
                         }
                             break;
                         case 2:
                         {
-                            Port.RMSerialWrite(X_Widht,Y_height,1);
+                            RMSerialWrite(X_Widht,Y_height,1);
                             cout<<"send None"<<endl;
                         }
                             break;
                         default:
                             break;
                         }
-
+                    }
+                    else
+                    {
+                        RMSerialWrite(X_Widht,Y_height,1);
+                        cout<<"send None"<<endl;
                     }
                 }
                     break;
@@ -290,14 +296,14 @@ int main()
                     SendBuf_COUNT = 0;    //成功发送数据时将缓存计数器置零
                     int X = src_img.cols/2;
                     int Y = src_img.rows/2;
-                    Port.RMSerialWrite(X,Y,0);
+                    RMSerialWrite(X,Y,0);
                     cout<<"send center"<<endl;
                 }
                     break;
                 case 2:
                 {
                     SendBuf_COUNT = 0;
-                    Port.RMSerialWrite(X_Widht,Y_height,0);
+                    RMSerialWrite(X_Widht,Y_height,0);
                     cout<<"send success"<<endl;
                 }
                     break;

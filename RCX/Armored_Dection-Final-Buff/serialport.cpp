@@ -100,32 +100,43 @@ void SerialPort::RMSerialWrite(int x,int y,int SendDataFlag)
     case 0:
     {
         sprintf(g_buf,"%s%03d%s%03d","S",x,",",y);
-        std::cout<<std::endl<<g_buf<<std::endl;
-        write(fd,g_buf,sizeof(g_buf));
+        //std::cout<<std::endl<<g_buf<<std::endl;
+
+        int flag = write(fd,g_buf,sizeof(g_buf));
+        std::cout << "flag:"<< flag<<std::endl;
         sleepUS(10);
     }
         break;
     case 1:
     {
         sprintf(g_buf,"%s","N1000000");
-        std::cout<<std::endl<<g_buf<<std::endl;
+        //std::cout<<std::endl<<g_buf<<std::endl;
+
         write(fd,g_buf,sizeof(g_buf));
+        int flag = write(fd,g_buf,sizeof(g_buf));
+        std::cout << "flag:"<< flag<<std::endl;
         sleepUS(1);
     }
         break;
     case 2:
     {
         sprintf(g_buf,"%s","N2000000");
-        std::cout<<std::endl<<g_buf<<std::endl;
-        write(fd,g_buf,sizeof(g_buf));
+        //std::cout<<std::endl<<g_buf<<std::endl;
+
+        int flag = write(fd,g_buf,sizeof(g_buf));
+        std::cout << "flag:"<< flag<<std::endl;
+
         sleepUS(1);
     }
         break;
     case 3:
     {
         sprintf(g_buf,"%s","N3000000");
-        std::cout<<std::endl<<g_buf<<std::endl;
-        write(fd,g_buf,sizeof(g_buf));
+        //std::cout<<std::endl<<g_buf<<std::endl;
+
+        int flag = write(fd,g_buf,sizeof(g_buf));
+        std::cout << "flag:"<< flag<<std::endl;
+
         sleepUS(1);
     }
         break;
