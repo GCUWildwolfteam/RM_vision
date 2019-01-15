@@ -5,16 +5,16 @@
 
 class SerialPort
 {
-public:
+private:
     //串口标志量
     int fd;
 
 public:
     char *g_buf = new char[8];
     /**              函数声明            **/
-    SerialPort(int portNo = 1);
-    bool initPort(int baud = B115200);
+    SerialPort();
 
+    void serialSet(int port_No);
     //自定义串口发送
     void RMSerialWrite(int x,int y,int SendDataFlag);
     //延时函数，防止发送过快

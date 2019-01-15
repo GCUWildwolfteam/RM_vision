@@ -1,15 +1,15 @@
 #include "cameraconfigure.h"
 #include "configure.h"
 #include "contourfeature.h"
-#include "myserial.h"
-//#include "serialport.h"
+//#include "myserial.h"
+#include "serialport.h"
 #include "matchandgroup.h"
 #include "databuff.h"
 
 int main()
 {
     CameraConfigure camera;
-    //SerialPort Port(1);
+    SerialPort port;
     /*----------调用相机----------*/
     camera.cameraSet();
     /*----------调用相机----------*/
@@ -17,7 +17,7 @@ int main()
     /*----------串口部分----------*/
     if(serialisopen == 1)
     {
-        serialSet();
+        port.serialSet(1);
         //initPort();//串口初始化函数
     }
     /*----------串口部分----------*/
@@ -262,21 +262,21 @@ int main()
                                 int buff_reduce_value_y = abs(src_img.rows/2-y_buff);
                                 int send_buff_x = bufferReturn(src_img,x_buff,buff_reduce_value_x,SendBuf_COUNT,0);
                                 int send_buff_y = bufferReturn(src_img,y_buff,buff_reduce_value_y,SendBuf_COUNT,1);
-                                RMSerialWrite(send_buff_x,send_buff_y,4);
+                                port.RMSerialWrite(send_buff_x,send_buff_y,2);
                                 SendBuf_COUNT += 1;
                                 cout<<send_buff_x<<"  "<<send_buff_y<<"  ";
                                 cout<<"send Buff"<<endl;
                             }
                             else
                             {
-                                RMSerialWrite(X_Widht,Y_height,1);
+                                port.RMSerialWrite(X_Widht,Y_height,1);
                                 cout<<"send None"<<endl;
                             }
                         }
                             break;
                         case 2:
                         {
-                            RMSerialWrite(X_Widht,Y_height,1);
+                            port.RMSerialWrite(X_Widht,Y_height,1);
                             cout<<"send None"<<endl;
                         }
                             break;
@@ -286,7 +286,7 @@ int main()
                     }
                     else
                     {
-                        RMSerialWrite(X_Widht,Y_height,1);
+                        port.RMSerialWrite(X_Widht,Y_height,1);
                         cout<<"send None"<<endl;
                     }
                 }
@@ -296,14 +296,14 @@ int main()
                     SendBuf_COUNT = 0;    //成功发送数据时将缓存计数器置零
                     int X = src_img.cols/2;
                     int Y = src_img.rows/2;
-                    RMSerialWrite(X,Y,0);
+                    port.RMSerialWrite(X,Y,0);
                     cout<<"send center"<<endl;
                 }
                     break;
                 case 2:
                 {
                     SendBuf_COUNT = 0;
-                    RMSerialWrite(X_Widht,Y_height,0);
+                    port.RMSerialWrite(X_Widht,Y_height,0);
                     cout<<"send success"<<endl;
                 }
                     break;
