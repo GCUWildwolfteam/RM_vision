@@ -1,0 +1,47 @@
+#ifndef RM_BIG_CHYSANTHEMUM_H
+#define RM_BIG_CHYSANTHEMUM_H
+
+#include "configure.h"
+
+class RMBigChrysanthemum
+{
+public:
+    /*----------参数初始化----------*/
+    Mat src_img;    //原图
+    Mat gray_img;   //灰度图
+    Mat hsv_img;    //HSV图
+    Mat bin_img;    //二值图
+    Mat dst_img;    //输出图
+    int threshold_value = 20; 
+    /*----------参数初始化----------*/
+
+public:
+    RMBigChrysanthemum()
+    {
+
+    }
+    
+    void imageProcessing(Mat src);
+};
+
+void RMBigChrysanthemum::imageProcessing(Mat src)
+{
+    src_img = src;
+    src_img.copyTo(dst_img);
+    
+    //--------------色彩分割	-----------------//
+    cvtColor(src_img, gray_img, COLOR_BGR2GRAY);
+    threshold(gray_img, bin_img, threshold_Value, 255, THRESH_BINARY);
+    //medianBlur(bin_img, bin_img,7);
+    //medianBlur(bin_img, bin_img,5);
+    //Canny(bin_img,bin_img,120,240);
+    GaussianBlur(bin_img,bin_img,Size(7,7),0,0);
+    
+    vector<RotatedRect> rotateRect;
+    vector<vector<Point>> contours;
+    vector<Vec4i> hierarchy;
+    findContours(bin_img,contours,hierarchy,RETR_EXTERNAL, CHAIN_APPROX_NONE, Point(0,0));
+    
+}
+
+#endif // RM_BIG_CHYSANTHEMUM_H
