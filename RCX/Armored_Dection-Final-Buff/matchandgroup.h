@@ -70,7 +70,7 @@ bool rectDifferent(const RotatedRect &r1, const RotatedRect &r2)
     return is;
 }
 
-bool lightFilter(RotatedRect R_rect_1,RotatedRect R_rect_2)
+bool lightFilter(RotatedRect &R_rect_1,RotatedRect &R_rect_2)
 {
     bool is = 0;
     int w1,w2;
@@ -111,7 +111,7 @@ bool lightFilter(RotatedRect R_rect_1,RotatedRect R_rect_2)
     return is;
 }
 
-bool distanceHeight(RotatedRect R_rect_1, RotatedRect R_rect_2)
+bool distanceHeight(RotatedRect &R_rect_1, RotatedRect &R_rect_2)
 {
     float distence = centerDistance(R_rect_1.center,R_rect_2.center);
     bool is = 0;

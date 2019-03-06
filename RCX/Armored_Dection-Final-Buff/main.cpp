@@ -1,20 +1,25 @@
 #include "cameraconfigure.h"
 #include "configure.h"
 #include "contourfeature.h"
-//#include "myserial.h"
 #include "serialport.h"
 #include "matchandgroup.h"
 #include "databuff.h"
 
 int main()
 {
-    CameraConfigure camera;
-    SerialPort port;
     /*----------调用相机----------*/
+#ifdef cameramode_0
+    CameraConfigure camera;
     camera.cameraSet();
+#endif
+
+#ifdef cameramode_1
+    VideoCapture cap(capture_defult);
+#endif
     /*----------调用相机----------*/
 
     /*----------串口部分----------*/
+    SerialPort port;
     if(serialisopen == 1)
     {
         port.serialSet(1);
@@ -41,11 +46,17 @@ int main()
         threshold_Value = 40;
     }
     int SendBuf_COUNT = 0;    //ifSendSuccess
+    Point last_center_point;      //储存点作为上一帧点　用来做滤波
+#ifdef is_open_kalman
+    int can_kalman_COUNT = 0;       //判断是否有两帧数据　是否可以使用预测
+    bool is_success_kalman = false;     //是否成功预测
+#endif
     /*----------参数初始化----------*/
     //----------识别部分----------
     for(;;)
     {
         t1 = getTickCount();
+        #ifdef cameramode_0
         if(CameraGetImageBuffer(camera.hCamera,&camera.sFrameInfo,&camera.pbyBuffer,1000) == CAMERA_STATUS_SUCCESS)
         {
             //----------读取原图----------//
@@ -57,6 +68,10 @@ int main()
             camera.iplImage = cvCreateImageHeader(cvSize(camera.sFrameInfo.iWidth,camera.sFrameInfo.iHeight),IPL_DEPTH_8U,camera.channel);
             cvSetData(camera.iplImage,camera.g_pRgbBuffer,camera.sFrameInfo.iWidth*camera.channel);//此处只是设置指针，无图像块数据拷贝，不需担心转换效率
             src_img = cvarrToMat(camera.iplImage,true);//这里只是进行指针转换，将IplImage转换成Mat类型
+        #endif
+            #ifdef cameramode_1
+            cap >> src_img;
+            #endif
             resize(src_img,src_img,Size(640,480),INTER_NEAREST);
             src_img.copyTo(dst_img);
 
@@ -64,14 +79,14 @@ int main()
             cvtColor(src_img, gray_img, COLOR_BGR2GRAY);
             threshold(gray_img, bin_img, threshold_Value, 255, THRESH_BINARY);
             medianBlur(bin_img, bin_img,5);
-            Canny(bin_img,bin_img,120,240);
+            //Canny(bin_img,bin_img,120,240);
 
-            vector<vector<Point>> contours;
+            vector<vector<Point> > contours;
             vector<Rect> boundRect;
             vector<RotatedRect> rotateRect;
             vector<Vec4i> hierarchy;
             vector<Point2f> midPoint(2);
-            vector<vector<Point2f>> midPoint_pair;
+            vector<vector<Point2f> > midPoint_pair;
 
             //查找轮廓
             findContours(bin_img, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE, Point(0,0));
@@ -81,17 +96,20 @@ int main()
             {
                 if (contours.size() <= 1)
                     break;
-                Rect B_rect_i = boundingRect(contours[i]);
-                RotatedRect R_rect_i = minAreaRect(contours[i]);
-                float ratio = (float)B_rect_i.width / (float)B_rect_i.height;
-                bool H_W = false;
-                if(B_rect_i.height >= B_rect_i.width)
+                if(contours[i].size()>5)
                 {
-                    H_W = catchState(ratio,lightState(R_rect_i));
-                    if (H_W)
+                    Rect B_rect_i = boundingRect(contours[i]);
+                    RotatedRect R_rect_i = fitEllipse(contours[i]);
+                    float ratio = (float)B_rect_i.width / (float)B_rect_i.height;
+                    bool H_W = false;
+                    if(B_rect_i.height >= B_rect_i.width)
                     {
-                        boundRect.push_back(B_rect_i);
-                        rotateRect.push_back(R_rect_i);
+                        H_W = catchState(ratio,lightState(R_rect_i));
+                        if (H_W)
+                        {
+                            boundRect.push_back(B_rect_i);
+                            rotateRect.push_back(R_rect_i);
+                        }
                     }
                 }
             }
@@ -114,61 +132,14 @@ int main()
                             if (distanceHeight(rotateRect[k1],rotateRect[k2]))
                             {
                                 /*ROI_1　获取旋转矩形ROI*/
-                                Point2f verices_1[4];
-                                Point2f verdst_1[4];
-                                int roi_w1;
-                                int roi_h1;
-                                if (rotateRect[k1].size.width > rotateRect[k1].size.height)
-                                {
-                                    rotateRect[k1].points(verices_1);
-                                    roi_w1 = rotateRect[k1].size.width;
-                                    roi_h1 = rotateRect[k1].size.height;
-                                    verdst_1[0] = Point2f(0,roi_h1);
-                                    verdst_1[1] = Point2f(0,0);
-                                    verdst_1[2] = Point2f(roi_w1,0);
-                                    verdst_1[3] = Point2f(roi_w1,roi_h1);
-                                }
-                                else
-                                {
-                                    rotateRect[k1].points(verices_1);
-                                    roi_w1 = rotateRect[k1].size.height;
-                                    roi_h1 = rotateRect[k1].size.width;
-                                    verdst_1[0] = Point2f(roi_w1,roi_h1);
-                                    verdst_1[1] = Point2f(0,roi_h1);
-                                    verdst_1[2] = Point2f(0,0);
-                                    verdst_1[3] = Point2f(roi_w1,0);
-                                }
+                                Mat roi_1;
+                                getcolorROI(src_img,rotateRect[k1],roi_1);
+
                                 /*ROI_2　获取旋转矩形ROI*/
-                                Point2f verices_2[4];
-                                Point2f verdst_2[4];
-                                int roi_w2;
-                                int roi_h2;
-                                if (rotateRect[k2].size.width > rotateRect[k2].size.height)
-                                {
-                                    rotateRect[k2].points(verices_2);
-                                    roi_w2 = rotateRect[k2].size.width;
-                                    roi_h2 = rotateRect[k2].size.height;
-                                    verdst_2[0] = Point2f(0,roi_h2);
-                                    verdst_2[1] = Point2f(0,0);
-                                    verdst_2[2] = Point2f(roi_w2,0);
-                                    verdst_2[3] = Point2f(roi_w2,roi_h2);
-                                }
-                                else
-                                {
-                                    rotateRect[k2].points(verices_2);
-                                    roi_w2 = rotateRect[k2].size.width;
-                                    roi_h2 = rotateRect[k2].size.height;
-                                    verdst_2[0] = Point2f(roi_w2,roi_h2);
-                                    verdst_2[1] = Point2f(0,roi_h2);
-                                    verdst_2[2] = Point2f(0,0);
-                                    verdst_2[3] = Point2f(roi_w2,0);
-                                }
-                                Mat roi_1 = Mat(roi_h1,roi_w1,CV_8UC1);
-                                Mat warpMatrix1 = getPerspectiveTransform(verices_1,verdst_1);
-                                warpPerspective(dst_img,roi_1,warpMatrix1,roi_1.size(),INTER_LINEAR, BORDER_CONSTANT);
-                                Mat roi_2 = Mat(roi_h2,roi_w2,CV_8UC1);
-                                Mat warpMatrix2 = getPerspectiveTransform(verices_2,verdst_2);
-                                warpPerspective(dst_img,roi_2,warpMatrix2,roi_2.size(),INTER_LINEAR, BORDER_CONSTANT);
+                                Mat roi_2;
+                                getcolorROI(src_img,rotateRect[k2],roi_2);
+
+
                                 /*颜色检测*/
                                 if(isarmoredColor(roi_1)==1)
                                 {
@@ -217,6 +188,18 @@ int main()
                         int y2 = midPoint_pair[k3][1].y;
                         Point mid_point = Point(int((x1 + x2)/2), int((y1 + y2)/2));
                         //cout<<"x:"<<mid_point.x<<"   y:"<<mid_point.y;
+
+#ifdef is_open_kalman
+                        /* 　预测部分接口　　*/
+                        if(can_kalman_COUNT == 2)   //判断是否有两帧数据能传入判断
+                        {
+                            //获取预测的数据
+
+                            //将预测值替换为发送值
+
+                            can_kalman_COUNT　-=1;
+                        }
+#endif
                         X_Widht = mid_point.x;
                         Y_height = mid_point.y;
 
@@ -230,11 +213,10 @@ int main()
                         }
                         SuccessSend = true;     //成功发送标记置　1
                         cout<<"X"<<src_img.cols/2<<"  "<<"Y"<<src_img.rows/2<<endl;
-                        t2 = getTickCount();
-                        RunTime = (t2-t1)/getTickFrequency();
-                        FPS = 1 / RunTime;
-                        cout<<"time:"<<RunTime<<endl;
-                        cout<<"FPS:"<<FPS<<endl;
+
+                        //can_kalman_COUNT += 1;      //成功获取帧计数器加１
+
+                        last_center_point = mid_point;      //更新当前点为上一帧点
                         break;
                     }
                 }
@@ -314,19 +296,30 @@ int main()
             imshow("th",bin_img);
             imshow("input" ,src_img);
             imshow("output",dst_img);
+            t2 = getTickCount();
+            RunTime = (t2-t1)/getTickFrequency();
+            FPS = 1 / RunTime;
+            cout<<"time:"<<RunTime<<endl;
+            cout<<"FPS:"<<FPS<<endl;
             int key = waitKey(1);
             if(char(key) == 27)
             {
+                #ifdef cameramode_0
                 CameraReleaseImageBuffer(camera.hCamera,camera.pbyBuffer);
+                #endif
                 break;
             }
+#ifdef cameramode_0
             //在成功调用CameraGetImageBuffer后，必须调用CameraReleaseImageBuffer来释放获得的buffer。
             //否则再次调用CameraGetImageBuffer时，程序将被挂起一直阻塞，直到其他线程中调用CameraReleaseImageBuffer来释放了buffer
             CameraReleaseImageBuffer(camera.hCamera,camera.pbyBuffer);
         }
+#endif
     }
+    #ifdef cameramode_0
     CameraUnInit(camera.hCamera);
     //注意，现反初始化后再free
     free(camera.g_pRgbBuffer);
+    #endif
     return 0;
 }

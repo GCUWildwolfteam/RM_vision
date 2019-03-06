@@ -144,7 +144,7 @@ bool catchState(float ratio,int value)
     return is;
 }
 
-void getcolorROI(Mat src,const RotatedRect &rect, Mat roi)
+void getcolorROI(Mat src,const RotatedRect &rect, Mat &roi)
 {
     Point2f verices[4];
     Point2f verdst[4];

@@ -23,7 +23,7 @@ public:
 
     CameraConfigure();
 
-    void cameraSet();
+    int cameraSet();
 };
 
 #endif // CAMERACONFIGURE_H

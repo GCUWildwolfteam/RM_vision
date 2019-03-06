@@ -5,12 +5,11 @@
 
 class SerialPort
 {
-private:
+public:
     //串口标志量
     int fd;
-
-public:
     char *g_buf = new char[8];
+public:
     /**              函数声明            **/
     SerialPort();
 

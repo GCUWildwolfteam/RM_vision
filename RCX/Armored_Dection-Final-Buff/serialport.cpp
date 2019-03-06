@@ -36,6 +36,7 @@ void SerialPort::serialSet(int port_No)
      /* WARNING :  终端设备默认会设置为控制终端，因此open(O_NOCTTY不作为控制终端)
      * Terminals'll default to be set as Control Terminals
      */
+    struct termios newstate, option;
      /*打开串口*/
     fd=open(DeviceName[port_No], O_RDWR|O_NONBLOCK|O_NOCTTY|O_NDELAY);
     if (fd == -1)
@@ -51,20 +52,12 @@ void SerialPort::serialSet(int port_No)
     else
         printf("fcntl=%d\n", fcntl(fd, F_SETFL, 0));
 
-    /*测试是否为终端设备*/
-    if (isatty(STDIN_FILENO) == 0)
-        printf("standard input is not a terminal device\n");
-    else
-        printf("isatty success!\n");
-
-    struct termios newstate, option;
-    /*保存测试现有串口参数设置，在这里如果串口号等出错，会有相关的出错信息*/
-    if (tcgetattr(fd, &option) != 0)
-    {
-        perror("SetupSerial");
-        printf("tcgetattr( fd,&option) -> %d\n",tcgetattr(fd, &option));
-    }
-    /*串口设置*/
+    tcgetattr(fd, &newstate);
+    /*设置发送波特率*/
+    cfsetospeed(&newstate, B115200);
+    cfsetispeed(&newstate, B115200);
+    //获取波特率
+    tcgetattr(fd, &option);
 
     //本地连线, 取消控制功能 | 开始接收
     newstate.c_cflag |= CLOCAL | CREAD;
@@ -78,18 +71,33 @@ void SerialPort::serialSet(int port_No)
     newstate.c_cflag &= ~PARENB;
 
     /*阻塞模式的设置*/
-    option.c_cc[VTIME]=0;
-    option.c_cc[VMIN]=1;
+    newstate.c_cc[VTIME]=0;
+    newstate.c_cc[VMIN]=1;
 
-    /*设置发送波特率*/
-    cfsetospeed(&newstate, B115200);
+    tcsetattr(fd, TCSANOW, &newstate);
+////    /*测试是否为终端设备*/
+////    if (isatty(STDIN_FILENO) == 0)
+////        printf("standard input is not a terminal device\n");
+////    else
+////        printf("isatty success!\n");
 
-    /*激活新配置*/
-    if ((tcsetattr(fd, TCSANOW, &option)) != 0)
-    {
-        perror("Com Set Error\n");
-    }
-    printf("Com Set done!\n");
+
+//    /*保存测试现有串口参数设置，在这里如果串口号等出错，会有相关的出错信息*/
+//    if (tcgetattr(fd, &option) != 0)
+//    {
+//        perror("SetupSerial");
+//        printf("tcgetattr( fd,&option) -> %d\n",tcgetattr(fd, &option));
+//    }
+//    /*串口设置*/
+
+
+
+//    /*激活新配置*/
+//    if (() != 0)
+//    {
+//        perror("Com Set Error\n");
+//    }
+//    printf("Com Set done!\n");
 }
 
 void SerialPort::RMSerialWrite(int x,int y,int SendDataFlag)
@@ -99,20 +107,16 @@ void SerialPort::RMSerialWrite(int x,int y,int SendDataFlag)
     case 0:
     {
         sprintf(g_buf,"%s%03d%s%03d","S",x,",",y);
-        //std::cout<<std::endl<<g_buf<<std::endl;
-        int flag = write(fd,g_buf,sizeof(g_buf));
-        std::cout << "flag:"<< flag<<std::endl;
-        sleepUS(10);
+        std::cout<<std::endl<<g_buf<<std::endl;
+        write(fd,g_buf,sizeof(g_buf));
+        sleepUS(1);
     }
         break;
     case 1:
     {
         sprintf(g_buf,"%s","N1000000");
-        //std::cout<<std::endl<<g_buf<<std::endl;
-
+        std::cout<<std::endl<<g_buf<<std::endl;
         write(fd,g_buf,sizeof(g_buf));
-        int flag = write(fd,g_buf,sizeof(g_buf));
-        std::cout << "flag:"<< flag<<std::endl;
         sleepUS(1);
     }
         break;
@@ -121,7 +125,7 @@ void SerialPort::RMSerialWrite(int x,int y,int SendDataFlag)
         sprintf(g_buf,"%s%03d%s%03d","S",x,",",y);
         std::cout<<std::endl<<g_buf<<std::endl;
         write(fd,g_buf,sizeof(g_buf));
-        sleepUS(10);
+        sleepUS(1);
     }
         break;
     default:
